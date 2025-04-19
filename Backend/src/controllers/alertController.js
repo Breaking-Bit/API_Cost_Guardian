@@ -133,7 +133,8 @@ class AlertController {
                     {
                         $group: {
                             _id: null,
-                            total_cost: { $sum: '$cost' }
+                            total_cost: { $sum: '$cost' },
+                            total_usage: { $sum: '$usage_quantity' }
                         }
                     }
                 ]);
@@ -141,13 +142,22 @@ class AlertController {
                 const totalCost = usage[0]?.total_cost || 0;
                 const utilizationPercentage = (totalCost / budget.budget_amount) * 100;
 
-                if (utilizationPercentage >= budget.alert_threshold) {
+                // Check if there's an existing active alert for this budget
+                const existingAlert = await Alert.findOne({
+                    company: company_id,
+                    project: project_id,
+                    service_name: budget.service_name,
+                    alert_type: 'budget_threshold',
+                    status: 'active'
+                });
+
+                if (utilizationPercentage >= budget.alert_threshold && !existingAlert) {
                     const alert = new Alert({
                         company: company_id,
                         project: project_id,
                         service_name: budget.service_name,
                         alert_type: 'budget_threshold',
-                        message: `Budget threshold (${budget.alert_threshold}%) exceeded for ${budget.service_name}`,
+                        message: `WARNING: Budget utilization at ${utilizationPercentage.toFixed(2)}% for ${budget.service_name}`,
                         threshold: budget.alert_threshold,
                         current_value: utilizationPercentage,
                         status: 'active',
