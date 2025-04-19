@@ -9,8 +9,6 @@ import { Slider } from "@/components/ui/slider"
 import { Loader2, Zap } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-import { API_SERVICES, SERVICE_CONFIGS } from '@/config/services';
-
 interface UsageSimulatorProps {
   onSimulate: (serviceName: string, usageQuantity: number) => Promise<void>
   services: string[]
@@ -30,16 +28,15 @@ export default function UsageSimulator({ onSimulate, services }: UsageSimulatorP
     }
   }
 
-  // Update the calculateCost function
   const calculateCost = (service: string, quantity: number): number => {
     const rates: Record<string, number> = {
-      [API_SERVICES.GPT4]: 0.03,
-      [API_SERVICES.DALLE]: 0.02,
-      [API_SERVICES.GEMINI]: 0.01,
-      [API_SERVICES.CLAUDE]: 0.015,
-    };
-    return quantity * (rates[service] || 0.01);
-  };
+      "GPT-4": 0.03,
+      "DALL-E": 0.02,
+      Gemini: 0.01,
+      Claude: 0.015,
+    }
+    return quantity * (rates[service] || 0.01)
+  }
 
   const estimatedCost = calculateCost(selectedService, usageQuantity)
 

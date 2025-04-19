@@ -43,31 +43,6 @@ export interface UsageTrend {
   daily_cost: number
 }
 
-export interface BillingDetails {
-  plan: string
-  amount: number
-  currency: string
-  nextBillingDate: string
-  paymentMethod?: {
-    type: string
-    last4?: string
-    expiryDate?: string
-  }
-  billingHistory: Array<{
-    date: string
-    amount: number
-    status: string
-    invoice?: string
-  }>
-}
-
-export interface NotificationSettings {
-  emailNotifications: boolean
-  budgetAlerts: boolean
-  usageAlerts: boolean
-  weeklyReports: boolean
-}
-
 export interface ProjectDetails {
   project: Project
   current_month_stats: {
@@ -92,30 +67,4 @@ export interface Alert {
   current_value?: number
   created_at: string
   resolved_at?: string
-}
-
-export interface APIServiceResponse {
-    service: string;
-    response: any;
-    metadata?: {
-        tokens?: {
-            input: number;
-            output: number;
-        };
-        model?: string;
-        finishReason?: string;
-        safetyRatings?: Array<{
-            category: string;
-            probability: string;
-        }>;
-    };
-}
-
-export interface APIUsageStats {
-    service_name: string;
-    total_cost: number;
-    total_usage: number;
-    unit: string;
-    date: string;
-    metadata?: Record<string, any>;
 }

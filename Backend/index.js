@@ -16,7 +16,7 @@ initializeFirebase()
 // Update CORS configuration
 app.use(
   cors({
-    origin: "http://localhost:3000", // Fixed origin
+    origin: ["http://localhost:3000", "https://gemini.google.com"], // Fixed origin
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Project-ID"],
@@ -42,7 +42,6 @@ app.get("/health", (req, res) => {
 
 // API routes
 app.use("/api", routes)
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {

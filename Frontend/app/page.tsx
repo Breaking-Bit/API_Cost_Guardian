@@ -1,7 +1,7 @@
 import type React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Shield, Zap, BarChart3, Code2 } from "lucide-react"
+import { ArrowRight, BarChart3, Shield, Zap } from "lucide-react"
 
 export default function Home() {
   return (

@@ -1,18 +1,15 @@
-const express = require('express');
-const router = express.Router();
+const express = require("express")
+const router = express.Router()
+const companyRoutes = require("./companyRoutes")
+const projectRoutes = require("./projectRoutes")
+const costDataRoutes = require("./costDataRoutes")
+const budgetRoutes = require("./budgetRoutes")
+const chatRoutes = require("./chatRoutes") // Add this line
 
-const companyRoutes = require('./companyRoutes');
-const projectRoutes = require('./projectRoutes');
-const budgetRoutes = require('./budgetRoutes');
-const costDataRoutes = require('./costDataRoutes');
-const alertRoutes = require('./alertRoutes');
-const syncRoutes = require('./syncRoutes');
+router.use("/companies", companyRoutes)
+router.use("/projects", projectRoutes)
+router.use("/cost-data", costDataRoutes)
+router.use("/budgets", budgetRoutes)
+router.use("/chat", chatRoutes) // Add this line
 
-router.use('/companies', companyRoutes);
-router.use('/projects', projectRoutes);
-router.use('/budgets', budgetRoutes);
-router.use('/cost-data', costDataRoutes);
-router.use('/alerts', alertRoutes);
-router.use('/sync', syncRoutes);
-
-module.exports = router;
+module.exports = router

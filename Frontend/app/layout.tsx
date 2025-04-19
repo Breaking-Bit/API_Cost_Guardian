@@ -8,9 +8,9 @@ import { AuthProvider } from "@/components/auth-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: "API Gateway & Cost Management",
-  description: "Secure API proxy and cost management platform for AI services",
-  generator: 'SGI Web Setup'
+  title: "API Cost Management Dashboard",
+  description: "Track and manage your API costs efficiently",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({

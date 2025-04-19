@@ -7,6 +7,7 @@
 
 /* Pages */
 @import './pages/login.css';
+@import './pages/settings.css';
 
 /* Components */
 @import './components/project-card.css';

@@ -1,14 +1,4 @@
-import type { 
-    Project, 
-    ProjectDetails, 
-    Budget, 
-    Alert, 
-    UsageTrend, 
-    NotificationSettings, 
-    BillingDetails,
-    APIServiceResponse,
-    APIUsageStats 
-} from "./types"
+import type { Project, ProjectDetails, Budget, Alert } from "./types"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
@@ -131,10 +121,6 @@ export async function checkBudgetAlerts(token: string, projectId: string): Promi
   return apiRequest("/api/alerts/check-budget", "POST", token, {}, projectId)
 }
 
-export async function checkGeminiUsageSpike(token: string, projectId: string): Promise<any> {
-    return apiRequest("/api/alerts/check-gemini-usage", "POST", token, {}, projectId);
-}
-
 // Sync API
 export async function syncProjectData(token: string, projectId: string): Promise<any> {
   return apiRequest("/api/sync", "POST", token, {}, projectId)
@@ -142,71 +128,4 @@ export async function syncProjectData(token: string, projectId: string): Promise
 
 export async function getSyncStatus(token: string, projectId: string): Promise<any> {
   return apiRequest("/api/sync/status", "GET", token, undefined, projectId)
-}
-
-export async function fetchUsageTrends(token: string, projectId: string): Promise<UsageTrend[]> {
-  return apiRequest("/api/analytics/usage-trends", "GET", token, undefined, projectId)
-}
-
-export async function fetchBillingDetails(token: string): Promise<BillingDetails> {
-  return apiRequest("/api/billing/details", "GET", token)
-}
-
-export async function fetchNotificationSettings(token: string): Promise<NotificationSettings> {
-  return apiRequest("/api/notifications/settings", "GET", token)
-}
-
-export async function updateNotificationSettings(
-  token: string, 
-  settings: NotificationSettings
-): Promise<NotificationSettings> {
-  return apiRequest("/api/notifications/settings", "PUT", token, settings)
-}
-
-// API Proxy endpoints
-export async function callExternalAPI(
-  token: string,
-  projectId: string,
-  service: string,
-  payload: any,
-  options?: {
-    model?: string;
-    apiKey?: string;
-  }
-): Promise<APIServiceResponse> {
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-    "X-Project-ID": projectId
-  };
-
-  if (options?.apiKey) {
-    headers[`X-${service}-Key`] = options.apiKey;
-  }
-
-  return apiRequest(
-    `/api/proxy/${service.toLowerCase()}`,
-    "POST",
-    token,
-    {
-      ...payload,
-      model: options?.model
-    },
-    projectId
-  );
-}
-
-export async function getServiceUsage(
-  token: string,
-  projectId: string,
-  service: string,
-  timeframe?: string
-): Promise<APIUsageStats[]> {
-  return apiRequest(
-    `/api/proxy/${service.toLowerCase()}/usage`,
-    "GET",
-    token,
-    { timeframe },
-    projectId
-  );
 }

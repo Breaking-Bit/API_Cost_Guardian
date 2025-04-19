@@ -28,14 +28,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any | null>(null)
 
   useEffect(() => {
-    // Check if user is already logged in
-    const storedToken = localStorage.getItem("token")
-    const storedUser = localStorage.getItem("user")
-
+    const storedToken = localStorage.getItem('token')
+    const storedUser = localStorage.getItem('user')
+    
     if (storedToken && storedUser) {
       setToken(storedToken)
-      setUser(JSON.parse(storedUser))
-      setIsAuthenticated(true)
+      try {
+        const parsedUser = JSON.parse(storedUser)
+        setUser(parsedUser)
+        setIsAuthenticated(true)
+      } catch (error) {
+        // Handle invalid JSON by clearing storage
+        localStorage.removeItem('user')
+        localStorage.removeItem('token')
+        setIsAuthenticated(false)
+      }
     }
   }, [])
 

@@ -1,90 +1,72 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/components/ui/use-toast"
-import DashboardLayout from "@/components/dashboard-layout"
+import { Loader2, AlertTriangle, CheckCircle, Bell } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
-import { fetchNotificationSettings, updateNotificationSettings } from "@/lib/api"
-import type { NotificationSettings } from "@/lib/types"
+import DashboardLayout from "@/components/dashboard-layout"
+import { fetchProjects, checkBudgetAlerts } from "@/lib/api"
+import type { Project } from "@/lib/types"
+
+interface Alert {
+  project_id: string
+  service_name: string
+  message: string
+  type: "warning" | "critical" | "info"
+  timestamp: string
+}
 
 export default function NotificationsPage() {
-  const { token } = useAuth()
-  const { toast } = useToast()
+  const [projects, setProjects] = useState<Project[]>([])
+  const [alerts, setAlerts] = useState<Record<string, Alert[]>>({})
   const [isLoading, setIsLoading] = useState(true)
-  const [settings, setSettings] = useState<NotificationSettings>({
-    emailNotifications: true,
-    budgetAlerts: true,
-    usageAlerts: true,
-    weeklyReports: true
-  })
+  const { isAuthenticated, token } = useAuth()
+  const { toast } = useToast()
 
   useEffect(() => {
-    const loadSettings = async () => {
-      if (!token) return
-      
-      setIsLoading(true)
-      try {
-        const data = await fetchNotificationSettings(token)
-        setSettings(data)
-      } catch (error) {
-        toast({
-          title: "Error loading settings",
-          description: "Failed to load notification settings. Please try again.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
+    if (!isAuthenticated) return
+    loadData()
+  }, [isAuthenticated, token])
 
-    loadSettings()
-  }, [token, toast])
-
-  const handleToggle = async (setting: keyof NotificationSettings) => {
-    const newSettings = { ...settings, [setting]: !settings[setting] }
-    setSettings(newSettings)
+  const loadData = async () => {
     try {
-      await updateNotificationSettings(token, newSettings)
-      toast({
-        title: "Settings updated",
-        description: "Your notification preferences have been saved.",
-      })
+      const projectsData = await fetchProjects(token)
+      setProjects(projectsData)
+      
+      const alertsData: Record<string, Alert[]> = {}
+      for (const project of projectsData) {
+        const projectAlerts = await checkBudgetAlerts(token, project._id)
+        alertsData[project._id] = projectAlerts.alerts || []
+      }
+      setAlerts(alertsData)
     } catch (error) {
-      // Revert the setting if the update failed
-      setSettings(settings)
       toast({
-        title: "Error updating settings",
-        description: "Failed to update settings. Please try again.",
+        title: "Error loading alerts",
+        description: "Please try again later",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const getAlertIcon = (type: string) => {
+    switch (type) {
+      case "critical":
+        return <AlertTriangle className="h-5 w-5 text-red-500" />
+      case "warning":
+        return <Bell className="h-5 w-5 text-yellow-500" />
+      default:
+        return <CheckCircle className="h-5 w-5 text-green-500" />
     }
   }
 
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="space-y-6">
-          <h1 className="text-2xl font-bold">Notification Settings</h1>
-          <div className="animate-pulse">
-            <Card>
-              <CardHeader>
-                <div className="h-4 w-24 bg-gray-200 rounded"></div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex justify-between items-center">
-                    <div className="space-y-2">
-                      <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                      <div className="h-3 w-48 bg-gray-100 rounded"></div>
-                    </div>
-                    <div className="h-6 w-10 bg-gray-200 rounded"></div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </DashboardLayout>
     )
@@ -93,53 +75,51 @@ export default function NotificationsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Notification Settings</h1>
+        <h1 className="text-3xl font-bold">Notifications</h1>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Email Notifications</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Budget Alerts</p>
-                <p className="text-sm text-muted-foreground">
-                  Get notified when you reach budget thresholds
-                </p>
-              </div>
-              <Switch
-                checked={settings.budgetAlerts}
-                onCheckedChange={() => handleToggle('budgetAlerts')}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Usage Alerts</p>
-                <p className="text-sm text-muted-foreground">
-                  Get notified about unusual API usage patterns
-                </p>
-              </div>
-              <Switch
-                checked={settings.usageAlerts}
-                onCheckedChange={() => handleToggle('usageAlerts')}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Weekly Reports</p>
-                <p className="text-sm text-muted-foreground">
-                  Receive weekly usage and cost summaries
-                </p>
-              </div>
-              <Switch
-                checked={settings.weeklyReports}
-                onCheckedChange={() => handleToggle('weeklyReports')}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 gap-6">
+          {projects.map((project) => (
+            <Card key={project._id}>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  {project.name}
+                  <span className="text-sm font-normal text-gray-500">
+                    {alerts[project._id]?.length || 0} alerts
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {alerts[project._id]?.length ? (
+                  <div className="space-y-4">
+                    {alerts[project._id].map((alert, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-start space-x-4 p-4 rounded-lg ${
+                          alert.type === "critical"
+                            ? "bg-red-50 dark:bg-red-900/10"
+                            : alert.type === "warning"
+                            ? "bg-yellow-50 dark:bg-yellow-900/10"
+                            : "bg-green-50 dark:bg-green-900/10"
+                        }`}
+                      >
+                        {getAlertIcon(alert.type)}
+                        <div className="flex-1">
+                          <h4 className="font-medium">{alert.service_name}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{alert.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(alert.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">No alerts for this project</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </DashboardLayout>
   )

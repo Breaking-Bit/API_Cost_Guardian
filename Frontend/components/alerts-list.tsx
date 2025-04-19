@@ -27,11 +27,7 @@ export default function AlertsList({ projectId, token }: AlertsListProps) {
     setIsLoading(true)
     try {
       const data = await fetchAlerts(token, projectId)
-      // Sort alerts by creation date, newest first
-      const sortedAlerts = data.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      )
-      setAlerts(sortedAlerts)
+      setAlerts(data)
     } catch (error) {
       toast({
         title: "Error loading alerts",
@@ -42,51 +38,6 @@ export default function AlertsList({ projectId, token }: AlertsListProps) {
       setIsLoading(false)
     }
   }
-
-  const handleCheckAlerts = async () => {
-    setIsChecking(true);
-    try {
-        // Check both budget and usage alerts
-        const [budgetResult, usageResult] = await Promise.all([
-            checkBudgetAlerts(token, projectId),
-            checkGeminiUsageSpike(token, projectId)
-        ]);
-
-        const totalAlerts = 
-            (budgetResult.alerts_generated || 0) + 
-            (usageResult.alert_generated ? 1 : 0);
-
-        if (totalAlerts > 0) {
-            await loadAlerts();
-        }
-
-        toast({
-            title: `${totalAlerts} new alert(s) generated`,
-            description: totalAlerts > 0
-                ? "New alerts have been generated"
-                : "No new alerts were generated",
-        });
-    } catch (error) {
-        toast({
-            title: "Error checking alerts",
-            description: "Please try again later",
-            variant: "destructive",
-        });
-    } finally {
-        setIsChecking(false);
-    }
-};
-
-  // Add auto-refresh for alerts
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isChecking && !isLoading) {
-        loadAlerts()
-      }
-    }, 60000) // Refresh every minute
-
-    return () => clearInterval(interval)
-  }, [isChecking, isLoading])
 
   const handleResolveAlert = async (alertId: string) => {
     try {
@@ -102,6 +53,29 @@ export default function AlertsList({ projectId, token }: AlertsListProps) {
         description: "Please try again later",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleCheckAlerts = async () => {
+    setIsChecking(true)
+    try {
+      const result = await checkBudgetAlerts(token, projectId)
+      await loadAlerts()
+      toast({
+        title: `${result.alerts_generated} new alert(s) generated`,
+        description:
+          result.alerts_generated > 0
+            ? "New budget threshold alerts have been generated"
+            : "No new alerts were generated",
+      })
+    } catch (error) {
+      toast({
+        title: "Error checking alerts",
+        description: "Please try again later",
+        variant: "destructive",
+      })
+    } finally {
+      setIsChecking(false)
     }
   }
 

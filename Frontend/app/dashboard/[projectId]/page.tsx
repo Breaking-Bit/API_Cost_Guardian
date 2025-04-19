@@ -8,48 +8,21 @@ import { useToast } from "@/components/ui/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, DollarSign, AlertTriangle, BarChart2, Shield } from "lucide-react"
+import { Loader2, Plus, RefreshCw, AlertTriangle, DollarSign } from "lucide-react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { useAuth } from "@/hooks/use-auth"
-import { fetchProjectDetails } from "@/lib/api"
+import { fetchProjectDetails, syncProjectData, simulateApiUsage } from "@/lib/api"
 import type { ProjectDetails } from "@/lib/types"
 import CostChart from "@/components/cost-chart"
+import UsageSimulator from "@/components/usage-simulator"
 import BudgetManager from "@/components/budget-manager"
 import AlertsList from "@/components/alerts-list"
-import { ServiceUsage } from "@/components/service-usage"
-import { API_SERVICES } from "@/config/services"
-
-import { Activity, Settings2, ArrowUpRight } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { ServiceConfigDialog } from "@/components/service-config-dialog"
-import { ApiTestDialog } from "@/components/api-test-dialog"
-
-interface StatCardProps {
-  title: string
-  value: string
-  description: string
-  icon: React.ReactNode
-}
-
-function StatCard({ title, value, description, icon }: StatCardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  )
-}
+import "@/styles/components/project-card.css"
 
 export default function ProjectDetailsPage() {
   const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
 
   const params = useParams()
@@ -65,12 +38,10 @@ export default function ProjectDetailsPage() {
     }
 
     loadProjectDetails()
-    // Set up auto-refresh interval
-    const interval = setInterval(loadProjectDetails, 60000) // Refresh every minute
-    return () => clearInterval(interval)
   }, [isAuthenticated, projectId, router, token])
 
   const loadProjectDetails = async () => {
+    setIsLoading(true)
     try {
       const data = await fetchProjectDetails(token, projectId)
       setProjectDetails(data)
@@ -83,6 +54,60 @@ export default function ProjectDetailsPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSyncData = async () => {
+    setIsSyncing(true)
+    try {
+      await syncProjectData(token, projectId)
+      await loadProjectDetails()
+      toast({
+        title: "Data synced successfully",
+        description: "Your project data has been updated",
+      })
+    } catch (error) {
+      toast({
+        title: "Error syncing data",
+        description: "Please try again later",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSyncing(false)
+    }
+  }
+
+  const handleSimulateUsage = async (serviceName: string, usageQuantity: number) => {
+    try {
+      await simulateApiUsage(token, projectId, {
+        service_name: serviceName,
+        usage_quantity: usageQuantity,
+        cost: calculateCost(serviceName, usageQuantity),
+        unit: "API_CALLS",
+        region: "us-east-1",
+      })
+
+      await loadProjectDetails()
+      toast({
+        title: "Usage simulated",
+        description: `Added ${usageQuantity} calls to ${serviceName}`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error simulating usage",
+        description: "Please try again later",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const calculateCost = (service: string, quantity: number): number => {
+    const rates: Record<string, number> = {
+      "GPT-4": 0.03,
+      "DALL-E": 0.02,
+      Gemini: 0.01,
+      Claude: 0.015,
+    }
+    return quantity * (rates[service] || 0.01)
   }
 
   if (isLoading) {
@@ -117,6 +142,10 @@ export default function ProjectDetailsPage() {
           <h1 className="text-2xl font-bold">{projectDetails.project.name}</h1>
           <p className="text-gray-500">{projectDetails.project.description || "No description provided"}</p>
         </div>
+        <Button onClick={handleSyncData} disabled={isSyncing}>
+          <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+          {isSyncing ? "Syncing..." : "Sync Data"}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -129,22 +158,23 @@ export default function ProjectDetailsPage() {
         <StatCard
           title="Active Services"
           value={projectDetails.current_month_stats.services_count.toString()}
-          description="With active usage"
-          icon={<Shield className="h-5 w-5 text-blue-500" />}
+          description="With recorded usage"
+          icon={<Plus className="h-5 w-5 text-blue-500" />}
         />
         <StatCard
           title="Active Budgets"
           value={projectDetails.current_month_stats.active_budgets.toString()}
           description="With monitoring"
-          icon={<BarChart2 className="h-5 w-5 text-yellow-500" />}
+          icon={<AlertTriangle className="h-5 w-5 text-yellow-500" />}
         />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
+          <TabsTrigger value="costs">Cost Analysis</TabsTrigger>
           <TabsTrigger value="budgets">Budgets</TabsTrigger>
+          <TabsTrigger value="simulator">Usage Simulator</TabsTrigger>
           <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
 
@@ -189,8 +219,8 @@ export default function ProjectDetailsPage() {
                               budget.utilization_percentage > 90
                                 ? "bg-red-500"
                                 : budget.utilization_percentage > 70
-                                ? "bg-yellow-500"
-                                : "bg-green-500"
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
                             }`}
                             style={{ width: `${Math.min(budget.utilization_percentage, 100)}%` }}
                           ></div>
@@ -208,120 +238,79 @@ export default function ProjectDetailsPage() {
                 <CardDescription>API calls in the last 7 days</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {projectDetails.usage_trends.slice(0, 5).map((usage) => (
-                    <div key={`${usage._id.service}-${usage._id.day}`} className="flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">{usage._id.service}</div>
-                        <div className="text-sm text-gray-500">{usage._id.day}</div>
+                {projectDetails.usage_trends.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-4">No usage data recorded yet</p>
+                    <Button variant="outline" onClick={() => setActiveTab("simulator")}>
+                      Simulate Usage
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {projectDetails.usage_trends.slice(0, 5).map((usage) => (
+                      <div key={`${usage._id.service}-${usage._id.day}`} className="flex justify-between items-center">
+                        <div>
+                          <div className="font-medium">{usage._id.service}</div>
+                          <div className="text-sm text-gray-500">{usage._id.day}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">${usage.daily_cost.toFixed(2)}</div>
+                          <div className="text-sm text-gray-500">{usage.daily_usage} calls</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium">${usage.daily_cost.toFixed(2)}</div>
-                        <div className="text-sm text-gray-500">{usage.daily_usage} calls</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="services" className="space-y-6">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  Available Services
-                  <Badge variant="outline" className="ml-2">
-                    {Object.keys(API_SERVICES).length} Services
-                  </Badge>
-                </CardTitle>
-                <CardDescription>Configure and monitor your API services</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px] pr-4">
-                  <div className="space-y-6">
-                    {Object.values(API_SERVICES).map((service) => (
-                      <div key={service} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <Activity className="h-5 w-5 text-primary" />
-                            <h3 className="font-semibold">{service}</h3>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <ServiceConfigDialog 
-                              service={service} 
-                              projectId={projectId} 
-                              onUpdate={loadProjectDetails} 
-                            />
-                            <ApiTestDialog 
-                              service={service} 
-                              projectId={projectId} 
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid gap-4 md:grid-cols-3">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">Monthly Usage</p>
-                            <p className="text-2xl font-bold">
-                              {projectDetails.usage_trends
-                                .filter(u => u._id.service === service)
-                                .reduce((acc, curr) => acc + curr.daily_usage, 0)
-                                .toLocaleString()} calls
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">Total Cost</p>
-                            <p className="text-2xl font-bold">
-                              ${projectDetails.usage_trends
-                                .filter(u => u._id.service === service)
-                                .reduce((acc, curr) => acc + curr.daily_cost, 0)
-                                .toFixed(2)}
-                            </p>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">Budget Status</p>
-                            {projectDetails.budget_utilization
-                              .find(b => b.service_name === service) ? (
-                              <div className="flex items-center space-x-2">
-                                <div className={`h-2 w-2 rounded-full ${
-                                  projectDetails.budget_utilization.find(b => b.service_name === service)!
-                                    .utilization_percentage > 90
-                                    ? "bg-red-500"
-                                    : projectDetails.budget_utilization.find(b => b.service_name === service)!
-                                      .utilization_percentage > 70
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                }`} />
-                                <span className="text-sm font-medium">
-                                  {projectDetails.budget_utilization.find(b => b.service_name === service)!
-                                    .utilization_percentage.toFixed(1)}% used
-                                </span>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setActiveTab("budgets")}
-                              >
-                                Set Budget
-                              </Button>
-                            )}
-                          </div>
-                        </div>
+        <TabsContent value="costs">
+          <Card>
+            <CardHeader>
+              <CardTitle>Detailed Cost Analysis</CardTitle>
+              <CardDescription>Breakdown of costs by service</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-8">
+                <CostChart data={projectDetails.cost_breakdown} />
 
-                        <ServiceUsage projectId={projectId} service={service} />
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Service
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Total Cost
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Usage
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Avg. Daily Cost
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                      {projectDetails.cost_breakdown.map((service) => (
+                        <tr key={service._id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{service._id}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">${service.total_cost.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">{service.total_usage} calls</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            ${service.average_daily_cost.toFixed(2)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="budgets">
@@ -333,10 +322,36 @@ export default function ProjectDetailsPage() {
           />
         </TabsContent>
 
+        <TabsContent value="simulator">
+          <UsageSimulator onSimulate={handleSimulateUsage} services={["GPT-4", "DALL-E", "Gemini", "Claude"]} />
+        </TabsContent>
+
         <TabsContent value="alerts">
           <AlertsList projectId={projectId} token={token} />
         </TabsContent>
       </Tabs>
     </DashboardLayout>
+  )
+}
+
+function StatCard({
+  title,
+  value,
+  description,
+  icon,
+}: { title: string; value: string; description: string; icon: React.ReactNode }) {
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{description}</p>
+          </div>
+          <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-full">{icon}</div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
