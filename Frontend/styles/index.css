@@ -1,0 +1,15 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Layouts */
+@import './layouts/dashboard-layout.css';
+
+/* Pages */
+@import './pages/login.css';
+@import './pages/settings.css';
+
+/* Components */
+@import './components/project-card.css';
+@import './components/analytics.css';
+@import './pages/project-details.css';
