@@ -1,0 +1,27 @@
+.settings-container {
+  @apply max-w-4xl mx-auto py-6 space-y-8;
+}
+
+.settings-section {
+  @apply bg-white dark:bg-gray-800 p-6 rounded-lg border shadow-sm;
+}
+
+.section-header {
+  @apply flex items-center justify-between mb-6;
+}
+
+.section-title {
+  @apply text-xl font-semibold;
+}
+
+.form-row {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-4 items-center mb-4;
+}
+
+.form-label {
+  @apply text-sm font-medium text-gray-700 dark:text-gray-300;
+}
+
+.form-input-wrapper {
+  @apply col-span-2;
+}
