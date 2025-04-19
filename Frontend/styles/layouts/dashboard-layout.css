@@ -1,0 +1,27 @@
+.dashboard-wrapper {
+  @apply flex h-screen bg-gray-50 dark:bg-gray-900;
+}
+
+.sidebar {
+  @apply hidden md:flex md:w-64 md:flex-col;
+}
+
+.sidebar-content {
+  @apply flex flex-col flex-grow pt-5 overflow-y-auto border-r bg-white dark:bg-gray-800;
+}
+
+.main-content {
+  @apply flex-1 p-8 overflow-y-auto;
+}
+
+.nav-item {
+  @apply flex items-center px-2 py-2 text-sm font-medium rounded-md;
+}
+
+.nav-item-active {
+  @apply bg-primary text-primary-foreground;
+}
+
+.nav-item-inactive {
+  @apply text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700;
+}

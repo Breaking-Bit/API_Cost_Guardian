@@ -1,0 +1,31 @@
+.billing-container {
+  @apply space-y-6;
+}
+
+.plan-details {
+  @apply flex justify-between items-center;
+}
+
+.plan-info {
+  @apply space-y-2;
+}
+
+.payment-method {
+  @apply space-y-4;
+}
+
+.billing-history {
+  @apply divide-y divide-gray-200 dark:divide-gray-700;
+}
+
+.billing-item {
+  @apply py-4 flex justify-between items-center;
+}
+
+.billing-date {
+  @apply text-sm text-muted-foreground;
+}
+
+.billing-amount {
+  @apply font-medium;
+}

@@ -14,7 +14,7 @@ const costDataSchema = new mongoose.Schema({
     service_name: {
         type: String,
         required: true,
-        trim: true
+        trim: true  
     },
     cost: {
         type: Number,
@@ -43,6 +43,13 @@ const costDataSchema = new mongoose.Schema({
     resource_id: {
         type: String,
         trim: true
+    },
+    request_details: {
+        input_tokens: Number,
+        output_tokens: Number,
+        model: String,
+        request_type: String,
+        status: String
     }
 });
 
