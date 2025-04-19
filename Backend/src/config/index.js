@@ -2,7 +2,7 @@ const config = {
     app: {
         port: process.env.PORT || 8080,
         env: process.env.NODE_ENV || 'development',
-        corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:8080'
+        corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000'  // Updated this line
     },
     alerts: {
         notificationsEnabled: process.env.ALERT_NOTIFICATION_ENABLED === 'true',
