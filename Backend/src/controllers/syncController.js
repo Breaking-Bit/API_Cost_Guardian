@@ -59,28 +59,43 @@ class SyncController {
     }
   }
 
+  calculateCost(service, usageQuantity) {
+    const rates = {
+      'GPT-4': 0.03,
+      'DALL-E': 0.02,
+      'Gemini': 0.01,
+      'Claude': 0.025
+    };
+    
+    return Number((usageQuantity * rates[service]).toFixed(2));
+  }
+
   async simulateAPIUsageData(company_id, project_id, startDate) {
-    const services = ["GPT-4", "DALL-E", "Gemini", "Claude"]
-    const regions = ["us-east-1", "eu-west-1", "ap-south-1"]
-    const newData = []
+    const services = ["GPT-4", "DALL-E", "Gemini", "Claude"];
+    const regions = ["us-east-1", "eu-west-1", "ap-south-1"];
+    const newData = [];
 
-    const currentDate = new Date()
-    const date = new Date(startDate)
+    const currentDate = new Date();
+    const date = new Date(startDate);
 
-    // Generate data with some patterns to make it more interesting
     while (date <= currentDate) {
       services.forEach((service) => {
-        // Create some patterns in the data
-        const dayOfWeek = date.getDay()
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
+        // Create realistic usage patterns
+        const dayOfWeek = date.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isBusinessHour = date.getHours() >= 9 && date.getHours() <= 17;
 
-        // Less usage on weekends
-        const baseUsage = isWeekend ? Math.floor(Math.random() * 300) + 1 : Math.floor(Math.random() * 800) + 200
+        // Base usage varies by time and day
+        let baseUsage = isWeekend ? 
+          Math.floor(Math.random() * 300) + 1 : // Lower weekend usage
+          Math.floor(Math.random() * 800) + 200; // Higher weekday usage
 
-        // Add some randomness but keep a base pattern
-        const usageQuantity = baseUsage + Math.floor(Math.random() * 200)
+        if (isBusinessHour) {
+          baseUsage *= 1.5; // Higher usage during business hours
+        }
 
-        const cost = this.calculateCost(service, usageQuantity)
+        const usageQuantity = Math.floor(baseUsage + (Math.random() * 200));
+        const cost = this.calculateCost(service, usageQuantity);
 
         newData.push({
           company: company_id,
@@ -90,37 +105,26 @@ class SyncController {
           usage_quantity: usageQuantity,
           unit: "API_CALLS",
           region: regions[Math.floor(Math.random() * regions.length)],
-          date: new Date(date),
-        })
-      })
+          date: new Date(date)
+        });
+      });
 
-      date.setDate(date.getDate() + 1)
+      // Increment by 1 hour for more granular data
+      date.setHours(date.getHours() + 1);
     }
 
-    return newData
+    return newData;
   }
-
-  calculateCost(service, quantity) {
-    const rates = {
-      "GPT-4": 0.03,
-      "DALL-E": 0.02,
-      Gemini: 0.01,
-      Claude: 0.015,
-    }
-
-    return quantity * (rates[service] || 0.01)
-  }
-
   async getLastSyncStatus(req, res) {
     try {
       const { company_id } = req.user
       const project_id = req.headers["x-project-id"]
-
+  
       const lastSync = await CostData.findOne({
         company: company_id,
         project: project_id,
       }).sort({ date: -1 })
-
+  
       res.json({
         last_sync: lastSync ? lastSync.date : null,
         status: lastSync ? "success" : "never_synced",
@@ -131,5 +135,7 @@ class SyncController {
     }
   }
 }
+
+
 
 module.exports = new SyncController()

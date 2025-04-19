@@ -123,7 +123,25 @@ export async function checkBudgetAlerts(token: string, projectId: string): Promi
 
 // Sync API
 export async function syncProjectData(token: string, projectId: string): Promise<any> {
-  return apiRequest("/api/sync", "POST", token, {}, projectId)
+  const response = await apiRequest("/api/sync", "POST", token, {}, projectId);
+  
+  // After successful sync, create budgets for services if they don't exist
+  const services = ["GPT-4", "DALL-E", "Gemini", "Claude"];
+  const existingBudgets = await fetchBudgets(token, projectId);
+  
+  for (const service of services) {
+    if (!existingBudgets.find(b => b.service_name === service)) {
+      const budgetData = {
+        service_name: service,
+        budget_amount: Math.floor(Math.random() * 900) + 100, // Random budget between 100-1000
+        budget_period: "monthly",
+        alert_threshold: 80
+      };
+      await createBudget(token, projectId, budgetData);
+    }
+  }
+  
+  return response;
 }
 
 export async function getSyncStatus(token: string, projectId: string): Promise<any> {
