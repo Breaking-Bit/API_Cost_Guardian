@@ -1,10 +1,10 @@
-const express = require("express")
-const router = express.Router()
-const ChatController = require("../controllers/chatController")
+const express = require('express');
+const ChatController = require('../controllers/chatController');
+const auth = require('../middleware/auth');
 
-const chatController = new ChatController()
+const router = express.Router();
+const chatController = new ChatController();
 
-// No authentication middleware for chat endpoint
-router.post("/", (req, res) => chatController.handleChat(req, res))
+router.post('/chat/:project_id', auth, chatController.handleChat.bind(chatController));
 
-module.exports = router
+module.exports = router;

@@ -7,7 +7,6 @@ const budgetRoutes = require("./budgetRoutes")
 const chatRoutes = require("./chatRoutes") // Add this line
 const syncRoutes = require("./syncRoutes") // Add this line
 const alertRoutes = require("./alertRoutes") // Add this line
-const analyticsRoutes = require("./analyticsRoutes")
 
 router.use("/companies", companyRoutes)
 router.use("/projects", projectRoutes)
@@ -16,6 +15,5 @@ router.use("/budgets", budgetRoutes)
 router.use("/chat", chatRoutes) // Add this line
 router.use("/sync", syncRoutes) // Add this line
 router.use("/alerts", alertRoutes) // Add this line
-router.use("/analytics", analyticsRoutes)
 
 module.exports = router

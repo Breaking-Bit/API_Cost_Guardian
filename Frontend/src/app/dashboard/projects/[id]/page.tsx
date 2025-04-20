@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
-import { SERVICES } from '@/config/env';
 import ServiceUsageSimulator from '@/components/ServiceUsageSimulator';
+import ChartComponent from "@/components/ChartComponent";
 
 interface CostData {
   service_name: string;
@@ -29,6 +29,7 @@ export default function ProjectDetails({ params }: { params: { id: string } }) {
   const [costData, setCostData] = useState<CostData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const handleSimulate = async (service: string) => {
     try {
       await api.simulateUsage(params.id, service);
@@ -88,7 +89,7 @@ export default function ProjectDetails({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       <div className="bg-white shadow rounded-lg p-6">
         <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
         <p className="mt-2 text-gray-600">{project.description}</p>
@@ -101,6 +102,33 @@ export default function ProjectDetails({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      {/* Updated chart grid with fixed heights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white shadow rounded-lg p-6" style={{ height: '400px' }}>
+          <ChartComponent
+            data={costData}
+            title="Cost Distribution by Service"
+            type="pie"
+          />
+        </div>
+        <div className="bg-white shadow rounded-lg p-6" style={{ height: '400px' }}>
+          <ChartComponent
+            data={costData}
+            title="Service Usage Comparison"
+            type="bar"
+          />
+        </div>
+      </div>
+
+      {/* Updated line chart container */}
+      <div className="bg-white shadow rounded-lg p-6" style={{ height: '400px' }}>
+        <ChartComponent
+          data={costData}
+          title="Cost Trends Over Time"
+          type="line"
+        />
+      </div>
+
       <ServiceUsageSimulator
         projectId={params.id}
         onSimulate={handleSimulate}
@@ -109,3 +137,5 @@ export default function ProjectDetails({ params }: { params: { id: string } }) {
     </div>
   );
 }
+
+// Remove the duplicate ProjectDetailsPage component as it's not needed

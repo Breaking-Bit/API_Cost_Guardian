@@ -1,6 +1,6 @@
 import type { Project, ProjectDetails, Budget, Alert } from "./types"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 // Helper function for API requests
 async function apiRequest(endpoint: string, method = "GET", token: string, data?: any, projectId?: string) {
@@ -78,9 +78,6 @@ export async function createProject(
   return apiRequest("/api/projects", "POST", token, projectData)
 }
 
-export async function fetchProjectDetails(token: string, projectId: string): Promise<ProjectDetails> {
-  return apiRequest(`/api/projects/${projectId}`, "GET", token)
-}
 
 // Budgets API
 export async function fetchBudgets(token: string, projectId: string): Promise<Budget[]> {
@@ -121,6 +118,10 @@ export async function checkBudgetAlerts(token: string, projectId: string): Promi
   return apiRequest("/api/alerts/check-budget", "POST", token, {}, projectId)
 }
 
+export async function checkAndGenerateAlerts(token: string, projectId: string): Promise<any> {
+    return apiRequest("/api/alerts/check-budget", "POST", token, {}, projectId);
+}
+
 // Sync API
 export async function syncProjectData(token: string, projectId: string): Promise<any> {
   const response = await apiRequest("/api/sync", "POST", token, {}, projectId);
@@ -146,4 +147,34 @@ export async function syncProjectData(token: string, projectId: string): Promise
 
 export async function getSyncStatus(token: string, projectId: string): Promise<any> {
   return apiRequest("/api/sync/status", "GET", token, undefined, projectId)
+}
+
+export async function fetchProjectDetails(projectId: string) {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/projects/${projectId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch project details');
+  }
+
+  return response.json();
+}
+
+export async function getCostData(projectId: string) {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/cost-data/${projectId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch cost data');
+  }
+
+  return response.json();
 }
