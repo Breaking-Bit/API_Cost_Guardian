@@ -1,8 +1,9 @@
 const Alert = require('../models/Alert');
 const CostData = require('../models/CostData');
 const Budget = require('../models/Budget');
-const Company = require('../models/Company'); // Add this import
+const Company = require('../models/Company');
 const logger = require('../utils/logger');
+const nodemailer = require('nodemailer'); // Add this import
 
 class AlertController {
     async getActiveAlerts(req, res) {
@@ -109,18 +110,21 @@ class AlertController {
             const { company_id } = req.user;
             const project_id = req.headers['x-project-id'];
 
+            // Get all active budgets
             const budgets = await Budget.find({
                 company: company_id,
                 project: project_id,
                 budget_status: 'active'
             });
 
-            const alerts = [];
             const monthStart = new Date();
             monthStart.setDate(1);
             monthStart.setHours(0, 0, 0, 0);
 
+            const alerts = [];
+
             for (const budget of budgets) {
+                // Get current usage with proper MongoDB ObjectId conversion
                 const usage = await CostData.aggregate([
                     {
                         $match: {
@@ -133,8 +137,7 @@ class AlertController {
                     {
                         $group: {
                             _id: null,
-                            total_cost: { $sum: '$cost' },
-                            total_usage: { $sum: '$usage_quantity' }
+                            total_cost: { $sum: '$cost' }
                         }
                     }
                 ]);
@@ -142,7 +145,7 @@ class AlertController {
                 const totalCost = usage[0]?.total_cost || 0;
                 const utilizationPercentage = (totalCost / budget.budget_amount) * 100;
 
-                // Check if there's an existing active alert for this budget
+                // Check for existing active alert
                 const existingAlert = await Alert.findOne({
                     company: company_id,
                     project: project_id,
@@ -151,13 +154,14 @@ class AlertController {
                     status: 'active'
                 });
 
+                // Generate alert if threshold is exceeded and no active alert exists
                 if (utilizationPercentage >= budget.alert_threshold && !existingAlert) {
                     const alert = new Alert({
                         company: company_id,
                         project: project_id,
                         service_name: budget.service_name,
                         alert_type: 'budget_threshold',
-                        message: `WARNING: Budget utilization at ${utilizationPercentage.toFixed(2)}% for ${budget.service_name}`,
+                        message: `${budget.service_name} usage has reached ${utilizationPercentage.toFixed(2)}% of monthly budget ($${totalCost.toFixed(2)}/$${budget.budget_amount})`,
                         threshold: budget.alert_threshold,
                         current_value: utilizationPercentage,
                         status: 'active',
@@ -166,13 +170,34 @@ class AlertController {
 
                     await alert.save();
                     alerts.push(alert);
+
+                    // Send email notification
+                    const company = await Company.findById(company_id);
+                    if (company?.email) {
+                        await this.sendAlertEmail(company.email, {
+                            service: budget.service_name,
+                            usage: utilizationPercentage.toFixed(2),
+                            currentCost: totalCost.toFixed(2),
+                            budget: budget.budget_amount,
+                            threshold: budget.alert_threshold
+                        });
+                    }
                 }
             }
 
+            // Get all active alerts after generating new ones
+            const allActiveAlerts = await Alert.find({
+                company: company_id,
+                project: project_id,
+                status: 'active'
+            }).sort({ created_at: -1 });
+
             res.json({
                 alerts_generated: alerts.length,
-                alerts
+                all_active_alerts: allActiveAlerts,
+                new_alerts: alerts
             });
+
         } catch (error) {
             logger.error('Check Budget Alerts Error:', error);
             res.status(500).json({ error: 'Failed to check budget alerts' });

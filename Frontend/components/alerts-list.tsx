@@ -57,27 +57,44 @@ export default function AlertsList({ projectId, token }: AlertsListProps) {
   }
 
   const handleCheckAlerts = async () => {
-    setIsChecking(true)
+    setIsChecking(true);
     try {
-      const result = await checkBudgetAlerts(token, projectId)
-      await loadAlerts()
-      toast({
-        title: `${result.alerts_generated} new alert(s) generated`,
-        description:
-          result.alerts_generated > 0
-            ? "New budget threshold alerts have been generated"
-            : "No new alerts were generated",
-      })
+        const budgetResult = await checkBudgetAlerts(token, projectId);
+        
+        // Update alerts list with all active alerts
+        if (budgetResult.all_active_alerts) {
+            setAlerts(budgetResult.all_active_alerts);
+        }
+
+        toast({
+            title: "Alert Check Complete",
+            description: budgetResult.alerts_generated > 0
+                ? `${budgetResult.alerts_generated} new alert(s) generated`
+                : "No new alerts detected",
+            variant: budgetResult.alerts_generated > 0 ? "warning" : "default"
+        });
     } catch (error) {
-      toast({
-        title: "Error checking alerts",
-        description: "Please try again later",
-        variant: "destructive",
-      })
+        console.error('Alert check error:', error);
+        toast({
+            title: "Error checking alerts",
+            description: "Failed to check for new alerts",
+            variant: "destructive",
+        });
     } finally {
-      setIsChecking(false)
+        setIsChecking(false);
     }
-  }
+};
+
+// Add automatic alert checking
+useEffect(() => {
+    const checkInterval = setInterval(() => {
+        if (!isChecking) {
+            handleCheckAlerts();
+        }
+    }, 300000); // Check every 5 minutes
+
+    return () => clearInterval(checkInterval);
+}, [isChecking]);
 
   const getAlertTypeIcon = (type: string) => {
     switch (type) {

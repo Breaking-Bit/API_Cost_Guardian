@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2, BarChart3 } from "lucide-react"
 import DashboardLayout from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import ChartComponent from "@/components/ChartComponent";
 
 export default function AnalyticsPage() {
   const { token, isAuthenticated } = useAuth()
@@ -76,7 +77,7 @@ export default function AnalyticsPage() {
     <DashboardLayout>
       <div className="analytics-container p-6">
         <h1 className="text-2xl font-bold mb-6">Analytics</h1>
-        
+
         {/* Project Overview Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Projects Overview</h2>
@@ -96,9 +97,9 @@ export default function AnalyticsPage() {
                   </CardHeader>
                   <CardContent>
                     <div style={{ height: "300px" }}>
-                      <CostChart
+                      <ChartComponent
                         data={projectsCostData[project._id] || []}
-                        type="pie"
+                        title={`Cost Breakdown for ${project.name}`}
                       />
                     </div>
                   </CardContent>
@@ -113,16 +114,15 @@ export default function AnalyticsPage() {
           <h2 className="text-xl font-semibold mb-4">Usage Simulator</h2>
           <UsageSimulator
             onSimulate={async (serviceName: string, usageQuantity: number) => {
-              // Handle simulation for selected project
               toast({
                 title: "Please select a project",
                 description: "Select a project from the dashboard to simulate usage",
-              })
+              });
             }}
             services={services}
           />
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }
